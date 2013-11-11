@@ -20,8 +20,8 @@
 		setTimeout(function(){
 			modal.style.visibility = "visible" // finally a use
 			modal.style.background = "rgba(100%, 100%, 50%, 0.3)";
-			modal.style.transition = "background 3s" //ease 1s";
-		}, 10);
+			modal.style.transition = "background 5s" //ease 1s";
+		}, 1);
 	}
 
 })();
