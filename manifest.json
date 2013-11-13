@@ -3,13 +3,24 @@
 
   "name": "f.luxJS",
   "description": "This extension makes the color of your browsers content adapt to the time of day, warm at night and like sunlight during the day.",
-  "version": "0.5",
-  "permissions": ["geolocation"],
+  "version": "0.6",
+  "permissions": ["geolocation", "tabs", "http://*/*", "https://*/*" ],
+  "browser_action": {
+    "default_icon": {                    // optional
+      "19": "fluxcon.png",           // optional
+      "38": "fluxcon.png"            // optional
+    },
+    "default_title": "fluxJS!"     // optional; shown in tooltip
+  },
   "content_scripts": [
   {
     "matches": ["*://*/*"],
     "js": ["fluxLoad.js"]
   }
   ],
+  "background": {
+      "scripts":      ["eventPage.js"],
+      "persistent":   false
+  },
   "web_accessible_resources": ["flux.js"]
 }

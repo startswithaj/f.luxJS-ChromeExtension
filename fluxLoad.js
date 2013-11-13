@@ -1,22 +1,40 @@
-navigator.geolocation.getCurrentPosition(function(xy) {
+var isOn = false
 
-	var times = SunCalc.getTimes(new Date(), xy.coords.latitude, xy.coords.longitude);
+chrome.runtime.onMessage.addListener (
+    function (request, sender, sendResponse) {
+        console.log(request)
+        if (request.command == "toggle") {
+            isOn = !isOn;
+            if (isOn)
+                document.getElementById('fluxColor').style.display = 'block';
+            else
+                document.getElementById('fluxColor').style.display = 'none';
+            sendResponse({isOn: isOn})
+        }
+    }
+);
 
-	var actualCode = [ 	'window.sunset = ' + times.sunset.getTime() + ';',
-                 		'window.sunrise= ' + times.sunrise.getTime() + ';'
-                	].join('\n');
+chrome.runtime.sendMessage ( {command: "getLocation"}, function (response) {
+    console.log (response.geoLocation);
 
-	var script = document.createElement('script');
-	script.textContent = actualCode;
-	(document.head||document.documentElement).appendChild(script);
-	script.parentNode.removeChild(script);
+	var times = SunCalc.getTimes(new Date(), response.geoLocation.latitude, response.geoLocation.longitude);
 
-	var s = document.createElement('script');
-	s.src = chrome.extension.getURL("flux.js");
-	s.onload = function() {
-	    this.parentNode.removeChild(this);
-	};
-	(document.head||document.documentElement).appendChild(s);
+    now = new Date().getTime();
+    sunset = times.sunset.getTime();
+    sunrise = times.sunrise.getTime();
+    console.log(now);
+    console.log(times);
+    console.log(sunset);
+    if ( ((now < sunset) && (now < sunrise)) || ((now > sunrise) && (now > sunset)) ) {
+    	var s = document.createElement('script');
+    	s.src = chrome.extension.getURL("flux.js");
+    	s.onload = function() {
+    	    this.parentNode.removeChild(this);
+    	};
+    	(document.head||document.documentElement).appendChild(s);
+        chrome.runtime.sendMessage( {command: "setBadge"} );
+        isOn = true
+    }
 
 });
 
