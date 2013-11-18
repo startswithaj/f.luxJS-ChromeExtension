@@ -1,48 +1,60 @@
 var isOn = false
 
-navigator.geolocation.getCurrentPosition (function (position) {
-
-    var times = SunCalc.getTimes(new Date(), position.coords.latitude, position.coords.longitude);
-
-    now = new Date().getTime();
-    sunset = times.sunset.getTime();
-    sunrise = times.sunrise.getTime();
-
-    if ( ((now < sunset) && (now < sunrise)) || ((now > sunrise) && (now > sunset)) ) {
-        isOn = true;
-        chrome.browserAction.setBadgeBackgroundColor( { color: "#009900"} ) 
-        chrome.browserAction.setBadgeText( { text: "on" } ); 
-    }
-                
-} );
-
-
-
-chrome.browserAction.onClicked.addListener( function(tab) {
-    // chrome.tabs.executeScript(null, {file: 'abc.js'});
-    isOn = !isOn
+var turnOnOff = function(){
     chrome.browserAction.setBadgeText( { text: isOn ? "on" : "off" } ); 
-    if (isOn) 
-        chrome.browserAction.setBadgeBackgroundColor( { color: "#009900"} );        
-    else
-        chrome.browserAction.setBadgeBackgroundColor( { color: "#F00"} ); //red
+    chrome.browserAction.setBadgeBackgroundColor( { color: isOn ? "#009900" : "#F00"} );        
     chrome.tabs.query({}, function(tabs) {
         for (var i=0; i<tabs.length; ++i) {
             chrome.tabs.sendMessage (tabs[i].id, {command: "toggle", isOn: isOn} );
         }
     });
+}
+
+var check = function() {
+    navigator.geolocation.getCurrentPosition (function (position) {
+
+        var times = SunCalc.getTimes(new Date(), position.coords.latitude, position.coords.longitude);
+
+        now = new Date().getTime();
+        sunset = times.sunset.getTime();
+        sunrise = times.sunrise.getTime();
+        // hak way of determining time inside of sunset/sunrise
+        if ( ((now < sunset) && (now < sunrise)) || ((now > sunrise) && (now > sunset)) ) {
+            isOn = true;
+        }
+        else {
+            isOn = false
+        }
+        turnOnOff();
+                    
+    });
+
+}
+
+check(); //first time we open chrome do the check
+
+// check status every half hour
+var checkST = setTimeout(check, 180000);
+
+// icon click
+chrome.browserAction.onClicked.addListener(function(){
+    isOn = !isOn //toggle
+    turnOnOff()
+    if (isOn)
+        checkST = setTimeout(check, 180000); // Turned on manually, restart check
+    else
+        clearTimeout(checkST); // turned off manually, stop checking
 });
 
+
+// each time a tab opens it requests status
+// could have tab update send message
 chrome.runtime.onMessage.addListener (
     function (request, sender, sendResponse) {
-        console.log(request)
         if (request.command == "getOnOffStatus") {
-            sendResponse ( {
-                    isOn: isOn
-            } );
+            sendResponse ( {isOn: isOn} );
         }
-        return true; // Needed because the response is asynchronous
-       
+        return true; // Needed because the response is asynchronous       
     }
 );
 
